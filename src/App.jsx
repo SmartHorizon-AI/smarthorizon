@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { Routes, Route, useNavigate, useLocation, useParams } from "react-router-dom";
 
 const P = {
   black: "#0D0D0D",
@@ -292,8 +293,12 @@ function Stamp({ text, color = P.red }) {
 }
 
 // ── Nav ──
-function Nav({ page, setPage }) {
+function Nav() {
   const [scrolled, setScrolled] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const page = location.pathname === "/" ? "home" : location.pathname.startsWith("/blog") ? "blog" : "home";
+
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 60);
     window.addEventListener("scroll", h);
@@ -309,7 +314,7 @@ function Nav({ page, setPage }) {
       display: "flex", alignItems: "center", justifyContent: "space-between",
       transition: "background 0.3s",
     }}>
-      <div onClick={() => setPage("home")} style={{
+      <div onClick={() => navigate("/")} style={{
         cursor: "pointer", fontFamily: "'Archivo Black', sans-serif",
         fontSize: "22px", color: P.white,
         display: "flex", alignItems: "center", gap: 10,
@@ -318,8 +323,8 @@ function Nav({ page, setPage }) {
         <span style={{ background: P.yellow, color: P.black, padding: "2px 8px", transform: "skewX(-6deg)", display: "inline-block" }}>HORIZON</span>
       </div>
       <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
-        {[["home", "HOME"], ["blog", "BLOG"]].map(([key, label]) => (
-          <span key={key} onClick={() => setPage(key)} style={{
+        {[["/", "home", "HOME"], ["/blog", "blog", "BLOG"]].map(([path, key, label]) => (
+          <span key={key} onClick={() => navigate(path)} style={{
             fontFamily: "'Space Mono', monospace", fontSize: "12px", letterSpacing: "3px",
             color: page === key ? P.yellow : P.white,
             textDecoration: page === key ? "line-through" : "none",
@@ -327,7 +332,7 @@ function Nav({ page, setPage }) {
           }}>{label}</span>
         ))}
         <span onClick={() => {
-          setPage("home");
+          navigate("/");
           setTimeout(() => document.getElementById("drop-zone")?.scrollIntoView({ behavior: "smooth" }), 100);
         }} style={{
           fontFamily: "'Archivo Black', sans-serif", fontSize: "12px", letterSpacing: "2px",
@@ -720,7 +725,8 @@ function DropZone() {
 }
 
 // ── Blog List ──
-function BlogList({ setSelectedPost }) {
+function BlogList() {
+  const navigate = useNavigate();
   return (
     <section style={{
       minHeight: "100vh", padding: "140px 40px 80px",
@@ -745,7 +751,7 @@ function BlogList({ setSelectedPost }) {
         }}>No thought leadership. No synergies. Real talk about AI and the industry's blind spots.</p>
 
         {BLOG_POSTS.map((post, i) => (
-          <article key={post.id} onClick={() => setSelectedPost(post)} style={{
+          <article key={post.id} onClick={() => navigate(`/blog/${post.id}`)} style={{
             background: P.white, border: `3px solid ${P.black}`,
             padding: "32px 28px", marginBottom: 20, cursor: "pointer",
             transform: `rotate(${[-0.4, 0.3, -0.2][i]}deg)`,
@@ -779,7 +785,11 @@ function BlogList({ setSelectedPost }) {
 }
 
 // ── Blog Post ──
-function BlogPostView({ post, goBack }) {
+function BlogPostView() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const post = BLOG_POSTS.find(p => p.id === Number(id)) || BLOG_POSTS[0];
+  const goBack = () => navigate("/blog");
   useEffect(() => { window.scrollTo(0, 0); }, []);
   const renderBody = (text) => text.split("\n").map((line, i) => {
     if (line.startsWith("## ")) return <h2 key={i} style={{
@@ -844,7 +854,7 @@ function BlogPostView({ post, goBack }) {
 
         <div style={{ marginTop: 24, background: P.red, padding: "24px 28px", transform: "rotate(0.3deg)" }}>
           <p style={{ fontFamily: "'Space Mono', monospace", fontSize: "13px", color: P.white, lineHeight: 1.7 }}>
-            Got an opportunity AI could unlock? <span onClick={goBack} style={{
+            Got an opportunity AI could unlock? <span onClick={() => navigate("/")} style={{
               color: P.yellow, cursor: "pointer", textDecoration: "underline", textDecorationThickness: "2px",
             }}>Tell us what you want to build</span> — 48hr response guaranteed.
           </p>
@@ -855,7 +865,8 @@ function BlogPostView({ post, goBack }) {
 }
 
 // ── Footer ──
-function Footer({ setPage }) {
+function Footer() {
+  const navigate = useNavigate();
   return (
     <footer style={{ background: P.black, padding: "48px 40px", borderTop: `4px solid ${P.red}` }}>
       <div style={{
@@ -874,11 +885,11 @@ function Footer({ setPage }) {
           <p style={{ fontFamily: "'Space Mono', monospace", fontSize: "10px", color: P.greyLight, letterSpacing: "3px", textTransform: "uppercase" }}>AI PRODUCTS. SHIPPED FAST. OWNED BY YOU.</p>
         </div>
         <div style={{ display: "flex", gap: 24 }}>
-          {["home", "blog"].map(p => (
-            <span key={p} onClick={() => setPage(p)} style={{
+          {[["home", "/"], ["blog", "/blog"]].map(([label, path]) => (
+            <span key={label} onClick={() => navigate(path)} style={{
               fontFamily: "'Space Mono', monospace", fontSize: "11px", letterSpacing: "2px",
               color: P.greyLight, cursor: "pointer", textTransform: "uppercase",
-            }}>{p}</span>
+            }}>{label}</span>
           ))}
         </div>
         <p style={{ fontFamily: "'Space Mono', monospace", fontSize: "10px", color: P.greyLight, opacity: 0.4 }}>© 2026 SMARTHORIZON.AI</p>
@@ -887,13 +898,28 @@ function Footer({ setPage }) {
   );
 }
 
+// ── Scroll to top on route change ──
+function ScrollToTop() {
+  const location = useLocation();
+  useEffect(() => { window.scrollTo(0, 0); }, [location.pathname]);
+  return null;
+}
+
+// ── Home Page ──
+function HomePage() {
+  return (
+    <>
+      <Hero />
+      <Manifesto />
+      <HowItWorks />
+      <Capabilities />
+      <DropZone />
+    </>
+  );
+}
+
 // ── Main App ──
 export default function PunkHorizon() {
-  const [page, setPage] = useState("home");
-  const [selectedPost, setSelectedPost] = useState(null);
-
-  useEffect(() => { window.scrollTo(0, 0); }, [page]);
-
   useEffect(() => {
     const l = document.createElement("link");
     l.href = "https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:wght@400;700&display=swap";
@@ -919,27 +945,16 @@ export default function PunkHorizon() {
         }
       `}</style>
 
-      <Nav page={page} setPage={(p) => { setPage(p); setSelectedPost(null); }} />
+      <ScrollToTop />
+      <Nav />
 
-      {page === "home" && (
-        <>
-          <Hero />
-          <Manifesto />
-          <HowItWorks />
-          <Capabilities />
-          <DropZone />
-        </>
-      )}
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/blog" element={<BlogList />} />
+        <Route path="/blog/:id" element={<BlogPostView />} />
+      </Routes>
 
-      {page === "blog" && !selectedPost && (
-        <BlogList setSelectedPost={setSelectedPost} />
-      )}
-
-      {page === "blog" && selectedPost && (
-        <BlogPostView post={selectedPost} goBack={() => setSelectedPost(null)} />
-      )}
-
-      <Footer setPage={(p) => { setPage(p); setSelectedPost(null); }} />
+      <Footer />
     </div>
   );
 }

@@ -603,7 +603,34 @@ function Capabilities() {
 function DropZone() {
   const [form, setForm] = useState({ name: "", company: "", email: "", opportunity: "" });
   const [done, setDone] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [focused, setFocused] = useState(null);
+
+  const handleSubmit = async () => {
+    if (!form.opportunity.trim() || submitting) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          access_key: "919a88cd-2b09-4221-8907-84f3b78edc20",
+          subject: "New SmartHorizon Lead: " + (form.company || form.name || "Unknown"),
+          from_name: form.name || "Website Visitor",
+          name: form.name,
+          company: form.company,
+          email: form.email,
+          opportunity: form.opportunity,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) setDone(true);
+      else { alert("Something went wrong. Please try again."); setSubmitting(false); }
+    } catch (err) {
+      alert("Network error. Please try again.");
+      setSubmitting(false);
+    }
+  };
 
   const inp = (field) => ({
     width: "100%", boxSizing: "border-box", padding: "14px 16px",
@@ -703,13 +730,13 @@ function DropZone() {
             rows={5}
             style={{ ...inp("opportunity"), resize: "vertical", lineHeight: 1.7 }}
           />
-          <button onClick={() => { if (form.opportunity.trim()) setDone(true); }} style={{
+          <button onClick={handleSubmit} disabled={submitting} style={{
             fontFamily: "'Archivo Black', sans-serif", fontSize: "15px",
-            letterSpacing: "3px", background: form.opportunity.trim() ? P.red : P.greyLight,
+            letterSpacing: "3px", background: submitting ? P.grey : form.opportunity.trim() ? P.red : P.greyLight,
             color: P.white, border: "none", padding: "18px 36px",
-            transform: "skewX(-4deg)", cursor: form.opportunity.trim() ? "pointer" : "not-allowed",
+            transform: "skewX(-4deg)", cursor: submitting ? "wait" : form.opportunity.trim() ? "pointer" : "not-allowed",
             textTransform: "uppercase", alignSelf: "flex-start", transition: "background 0.2s",
-          }}>LET'S BUILD →</button>
+          }}>{submitting ? "SENDING..." : "LET'S BUILD →"}</button>
         </div>
 
         <p style={{
